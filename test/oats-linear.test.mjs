@@ -7,10 +7,10 @@ import { join, resolve } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-const ROOT = resolve(fileURLToPath(new URL("../oas-package", import.meta.url)));
-const DIR = join(ROOT, "capabilities", "oas-linear");
-const CLI = join(DIR, "bin", "oas-linear.mjs");
-const HOOK = join(DIR, "bin", "oas-linear-hook.mjs");
+const ROOT = resolve(fileURLToPath(new URL("../oats-package", import.meta.url)));
+const DIR = join(ROOT, "capabilities", "oats-linear");
+const CLI = join(DIR, "bin", "oats-linear.mjs");
+const HOOK = join(DIR, "bin", "oats-linear-hook.mjs");
 
 function run(script, args = [], env = {}) {
   return new Promise((done) => {
@@ -70,24 +70,24 @@ test("auth uses the personal-key Authorization header", async () => {
     assert.equal(result.code, 0, result.stderr);
     assert.equal(JSON.parse(result.stdout).authenticated, true);
     assert.equal(requests[0].headers.authorization, "secret-key");
-    assert.equal(operation(requests[0].query), "OasLinearAuth");
+    assert.equal(operation(requests[0].query), "OatsLinearAuth");
   });
 });
 
 test("issue list builds an open agent/project filter", async () => {
   await mockApi(({ query }) => {
-    if (operation(query) === "OasLinearTeam") return { data: { teams: { nodes: [team] } } };
-    if (operation(query) === "OasLinearProjects") return { data: { projects: { nodes: [
+    if (operation(query) === "OatsLinearTeam") return { data: { teams: { nodes: [team] } } };
+    if (operation(query) === "OatsLinearProjects") return { data: { projects: { nodes: [
       { id: "project-1", name: "Agent Platform", slugId: "agent-platform", status: { id: "ps-1", name: "Started", type: "started" }, teams: { nodes: [team] } },
     ] } } };
-    if (operation(query) === "OasLinearIssues") return { data: { issues: { nodes: [issue], pageInfo: { hasNextPage: false, endCursor: null } } } };
+    if (operation(query) === "OatsLinearIssues") return { data: { issues: { nodes: [issue], pageInfo: { hasNextPage: false, endCursor: null } } } };
     throw new Error(`unexpected operation ${operation(query)}`);
   }, async ({ url, requests }) => {
     const result = await run(CLI, ["issue", "list", "--team", "ENG", "--agent", "worker-1", "--project", "Agent Platform"], {
       LINEAR_API_KEY: "key", LINEAR_API_URL: url,
     });
     assert.equal(result.code, 0, result.stderr);
-    const listRequest = requests.find((request) => operation(request.query) === "OasLinearIssues");
+    const listRequest = requests.find((request) => operation(request.query) === "OatsLinearIssues");
     assert.deepEqual(listRequest.variables.filter, {
       team: { id: { eq: "team-1" } },
       state: { type: { nin: ["completed", "canceled", "duplicate"] } },
@@ -100,19 +100,19 @@ test("issue list builds an open agent/project filter", async () => {
 test("issue create provisions the agent label and records identity", async () => {
   await mockApi(({ query, variables }) => {
     const op = operation(query);
-    if (op === "OasLinearTeam") return { data: { teams: { nodes: [team] } } };
-    if (op === "OasLinearLabels") return { data: { issueLabels: { nodes: [] } } };
-    if (op === "OasLinearCreateLabel") return { data: { issueLabelCreate: {
+    if (op === "OatsLinearTeam") return { data: { teams: { nodes: [team] } } };
+    if (op === "OatsLinearLabels") return { data: { issueLabels: { nodes: [] } } };
+    if (op === "OatsLinearCreateLabel") return { data: { issueLabelCreate: {
       success: true, issueLabel: { id: "label-1", name: variables.input.name, color: "#5E6AD2", team },
     } } };
-    if (op === "OasLinearIssueCreate") return { data: { issueCreate: { success: true, issue } } };
+    if (op === "OatsLinearIssueCreate") return { data: { issueCreate: { success: true, issue } } };
     throw new Error(`unexpected operation ${op}`);
   }, async ({ url, requests }) => {
     const result = await run(CLI, ["issue", "create", "--team", "ENG", "--title", "Bounded work", "--description", "Acceptance", "--agent", "worker-1"], {
       LINEAR_API_KEY: "key", LINEAR_API_URL: url,
     });
     assert.equal(result.code, 0, result.stderr);
-    const create = requests.find((request) => operation(request.query) === "OasLinearIssueCreate");
+    const create = requests.find((request) => operation(request.query) === "OatsLinearIssueCreate");
     assert.equal(create.variables.input.teamId, "team-1");
     assert.deepEqual(create.variables.input.labelIds, ["label-1"]);
     assert.match(create.variables.input.description, /Acceptance\n\n---\nAgent: worker-1/);
@@ -122,8 +122,8 @@ test("issue create provisions the agent label and records identity", async () =>
 test("terminal transitions require explicit authorization", async () => {
   await mockApi(({ query }) => {
     const op = operation(query);
-    if (op === "OasLinearIssue") return { data: { issue } };
-    if (op === "OasLinearStates") return { data: { team: { states: { nodes: [
+    if (op === "OatsLinearIssue") return { data: { issue } };
+    if (op === "OatsLinearStates") return { data: { team: { states: { nodes: [
       { id: "done-1", name: "Done", type: "completed", position: 1 },
     ] } } } };
     throw new Error(`unexpected operation ${op}`);
@@ -133,17 +133,17 @@ test("terminal transitions require explicit authorization", async () => {
     });
     assert.equal(result.code, 1);
     assert.match(result.stderr, /refusing terminal state/);
-    assert.equal(requests.some((request) => operation(request.query) === "OasLinearIssueUpdate"), false);
+    assert.equal(requests.some((request) => operation(request.query) === "OatsLinearIssueUpdate"), false);
   });
 });
 
 test("comment accepts multiline markdown from a file", async () => {
-  const temp = mkdtempSync(join(tmpdir(), "oas-linear-test-"));
+  const temp = mkdtempSync(join(tmpdir(), "oats-linear-test-"));
   const bodyFile = join(temp, "comment.md");
   writeFileSync(bodyFile, "[worker-1] handoff: details\n\n- tests pass\n");
   try {
     await mockApi(({ query }) => {
-      assert.equal(operation(query), "OasLinearComment");
+      assert.equal(operation(query), "OatsLinearComment");
       return { data: { commentCreate: { success: true, comment: { id: "comment-1", body: "ok", createdAt: "2026-07-10", url: "https://linear.app/c/1", user: { id: "user-1", name: "Human" } } } } };
     }, async ({ url, requests }) => {
       const result = await run(CLI, ["issue", "comment", "ENG-1", "--body-file", bodyFile], {
@@ -157,8 +157,8 @@ test("comment accepts multiline markdown from a file", async () => {
 
 test("spawn hook briefs settings and warns without auth", async () => {
   const result = await run(HOOK, ["spawn"], {
-    OAS_EVENT: "spawn", OAS_INSTANCE: "worker-1",
-    OAS_SETTINGS: JSON.stringify({ team: "ENG", project: "Agent Platform" }),
+    OATS_EVENT: "spawn", OATS_INSTANCE: "worker-1",
+    OATS_SETTINGS: JSON.stringify({ team: "ENG", project: "Agent Platform" }),
     LINEAR_API_KEY: "",
   });
   assert.equal(result.code, 0, result.stderr);

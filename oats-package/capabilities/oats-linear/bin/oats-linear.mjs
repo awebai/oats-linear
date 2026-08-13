@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * JSON-first Linear task operations for OAS.
+ * JSON-first Linear task operations for OATS.
  *
  * Uses Linear's official GraphQL API directly. No third-party Linear CLI or
  * SDK is required; authentication is a personal key in LINEAR_API_KEY.
@@ -40,7 +40,7 @@ const args = parseArgs(argv);
 
 async function graphql(query, variables = {}) {
   const key = process.env.LINEAR_API_KEY;
-  if (!key) die("LINEAR_API_KEY is not set", "Create a personal API key in Linear Settings → Security & access → API keys, export it, then run `oas linear auth`.");
+  if (!key) die("LINEAR_API_KEY is not set", "Create a personal API key in Linear Settings → Security & access → API keys, export it, then run `oats linear auth`.");
   let response;
   try {
     response = await fetch(API_URL, {
@@ -48,7 +48,7 @@ async function graphql(query, variables = {}) {
       headers: {
         "Authorization": key,
         "Content-Type": "application/json",
-        "User-Agent": "oas-linear/0.1",
+        "User-Agent": "oats-linear/0.1",
       },
       body: JSON.stringify({ query, variables }),
       signal: AbortSignal.timeout(30000),
@@ -66,7 +66,7 @@ async function graphql(query, variables = {}) {
       code: error.extensions?.code,
       path: error.path,
     }));
-    const hint = response.status === 401 ? "Check LINEAR_API_KEY and run `oas linear auth`." : undefined;
+    const hint = response.status === 401 ? "Check LINEAR_API_KEY and run `oats linear auth`." : undefined;
     die(`Linear API request failed (HTTP ${response.status})`, { errors, ...(hint ? { hint } : {}) });
   }
   return payload.data;
@@ -86,18 +86,18 @@ const ISSUE_FIELDS = `
 async function teamByKey(key) {
   if (!key || key === true) die("--team <KEY> is required");
   const data = await graphql(`
-    query OasLinearTeam($key: String!) {
+    query OatsLinearTeam($key: String!) {
       teams(first: 2, filter: { key: { eqIgnoreCase: $key } }) { nodes { id key name } }
     }
   `, { key });
-  if (data.teams.nodes.length === 0) die(`Linear team "${key}" was not found`, "Run `oas linear teams` and use its key.");
+  if (data.teams.nodes.length === 0) die(`Linear team "${key}" was not found`, "Run `oats linear teams` and use its key.");
   if (data.teams.nodes.length > 1) die(`Linear team key "${key}" is ambiguous`);
   return data.teams.nodes[0];
 }
 
 async function statesForTeam(team) {
   const data = await graphql(`
-    query OasLinearStates($id: String!) {
+    query OatsLinearStates($id: String!) {
       team(id: $id) { states(first: 100) { nodes { id name type position } } }
     }
   `, { id: team.id });
@@ -112,7 +112,7 @@ async function stateByName(team, name) {
 
 async function labelsForTeam(team) {
   const data = await graphql(`
-    query OasLinearLabels($teamId: ID!) {
+    query OatsLinearLabels($teamId: ID!) {
       issueLabels(first: 250, filter: { or: [
         { team: { null: true } },
         { team: { id: { eq: $teamId } } }
@@ -134,10 +134,10 @@ async function ensureAgentLabel(team, alias) {
   const existing = await findLabel(team, name);
   if (existing) return existing;
   const data = await graphql(`
-    mutation OasLinearCreateLabel($input: IssueLabelCreateInput!) {
+    mutation OatsLinearCreateLabel($input: IssueLabelCreateInput!) {
       issueLabelCreate(input: $input) { success issueLabel { id name color team { id key } } }
     }
-  `, { input: { name, teamId: team.id, color: "#5E6AD2", description: "OAS agent instance identity" } });
+  `, { input: { name, teamId: team.id, color: "#5E6AD2", description: "OATS agent instance identity" } });
   if (!data.issueLabelCreate.success) die(`Linear did not create label "${name}"`);
   return data.issueLabelCreate.issueLabel;
 }
@@ -149,7 +149,7 @@ async function labelByName(team, name) {
 
 async function projectsForTeam(team) {
   const data = await graphql(`
-    query OasLinearProjects($teamId: ID!) {
+    query OatsLinearProjects($teamId: ID!) {
       projects(first: 250, filter: { accessibleTeams: { some: { id: { eq: $teamId } } } }) {
         nodes { id name slugId status { id name type } teams(first: 20) { nodes { id key name } } }
       }
@@ -169,7 +169,7 @@ async function projectByRef(team, ref) {
 async function issueById(id) {
   if (!id || id === true) die("an issue identifier such as ENG-123 is required");
   const data = await graphql(`
-    query OasLinearIssue($id: String!) { issue(id: $id) { ${ISSUE_FIELDS} } }
+    query OatsLinearIssue($id: String!) { issue(id: $id) { ${ISSUE_FIELDS} } }
   `, { id });
   return data.issue;
 }
@@ -193,13 +193,13 @@ function assertTerminalAllowed(state) {
 
 async function auth() {
   const data = await graphql(`
-    query OasLinearAuth { viewer { id name email } organization { id name urlKey } }
+    query OatsLinearAuth { viewer { id name email } organization { id name urlKey } }
   `);
   print({ authenticated: true, endpoint: API_URL, viewer: data.viewer, workspace: data.organization });
 }
 async function teams() {
   const data = await graphql(`
-    query OasLinearTeams { teams(first: 100) { nodes { id key name } } }
+    query OatsLinearTeams { teams(first: 100) { nodes { id key name } } }
   `);
   print(data.teams.nodes);
 }
@@ -228,7 +228,7 @@ async function listIssues() {
     filter.project = { id: { eq: project.id } };
   }
   const data = await graphql(`
-    query OasLinearIssues($first: Int!, $filter: IssueFilter) {
+    query OatsLinearIssues($first: Int!, $filter: IssueFilter) {
       issues(first: $first, filter: $filter) { nodes { ${ISSUE_FIELDS} } ${PAGE_INFO} }
     }
   `, { first: requestedLimit, filter });
@@ -260,7 +260,7 @@ async function createIssue() {
   for (const name of args.many("label")) issueLabels.push(await labelByName(team, name));
   if (issueLabels.length) input.labelIds = [...new Set(issueLabels.map((label) => label.id))];
   const data = await graphql(`
-    mutation OasLinearIssueCreate($input: IssueCreateInput!) {
+    mutation OatsLinearIssueCreate($input: IssueCreateInput!) {
       issueCreate(input: $input) { success issue { ${ISSUE_FIELDS} } }
     }
   `, { input });
@@ -288,7 +288,7 @@ async function updateIssue(id) {
   if (removed.length) input.removedLabelIds = [...new Set(removed)];
   if (Object.keys(input).length === 0) die("no update supplied", "Use --title, --description[-file], --state, --agent, --add-label, or --remove-label.");
   const data = await graphql(`
-    mutation OasLinearIssueUpdate($id: String!, $input: IssueUpdateInput!) {
+    mutation OatsLinearIssueUpdate($id: String!, $input: IssueUpdateInput!) {
       issueUpdate(id: $id, input: $input) { success issue { ${ISSUE_FIELDS} } }
     }
   `, { id, input });
@@ -299,7 +299,7 @@ async function commentIssue(id) {
   const body = textOption("body");
   if (!body || body === true) die("--body <markdown> or --body-file <path> is required");
   const data = await graphql(`
-    mutation OasLinearComment($input: CommentCreateInput!) {
+    mutation OatsLinearComment($input: CommentCreateInput!) {
       commentCreate(input: $input) { success comment { id body createdAt url user { id name } } }
     }
   `, { input: { issueId: id, body } });
@@ -308,7 +308,7 @@ async function commentIssue(id) {
 }
 
 function usage() {
-  process.stderr.write(`oas linear commands (all output JSON):
+  process.stderr.write(`oats linear commands (all output JSON):
   auth
   teams
   states --team <KEY>

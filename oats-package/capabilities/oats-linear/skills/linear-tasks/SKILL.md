@@ -1,12 +1,12 @@
 ---
 name: linear-tasks
 description: >-
-  Linear task tracking for OAS agent instances. Use when reading an agent's
+  Linear task tracking for OATS agent instances. Use when reading an agent's
   Linear work queue, opening or inspecting an issue, creating issues or
   sub-issues, claiming work with an agent label, posting progress/blocker/
   handoff comments, or moving work through Linear workflow states. Also use
   when asked about "my issue", "the project", "the board", a Linear issue key
-  such as ENG-123, or shared task status. Uses JSON-first `oas linear` commands.
+  such as ENG-123, or shared task status. Uses JSON-first `oats linear` commands.
 ---
 
 # Agent task tracking in Linear
@@ -21,19 +21,19 @@ Get the target from the `Tasks: Linear` line in your `TASK.md` briefing:
 
 - **team** is required and uses Linear's issue-prefix key (for example `ENG`).
 - **project** is an optional deployment default. Do not invent one when unset.
-- **alias** is your exact OAS instance name; your label is `agent-<alias>`.
+- **alias** is your exact OATS instance name; your label is `agent-<alias>`.
 
 Before the first operation, run:
 
 ```bash
-oas linear auth
-oas linear teams
+oats linear auth
+oats linear teams
 ```
 
 If `LINEAR_API_KEY` is missing or rejected, **stop and ask the human** to create
 or export a personal API key (Linear Settings → Security & access → API keys).
 Never ask for the key's value, print it, put it in a command argument, or store
-it in OAS config/files. Never attempt an interactive login.
+it in OATS config/files. Never attempt an interactive login.
 
 Commands emit JSON. An error is JSON on stderr with a non-zero exit code; act
 on that error rather than retrying variants blindly.
@@ -67,7 +67,7 @@ The current wrapper can discover project metadata but **cannot read or mutate
 project overview Markdown or Linear documents**:
 
 ```bash
-oas linear projects --team <TEAM>
+oats linear projects --team <TEAM>
 ```
 
 That output includes project IDs, names, slugs, status, and teams. Project
@@ -79,7 +79,7 @@ from an issue title.
 ## Identity and ownership
 
 - Keep the **human assignee unchanged**. A personal API key acts as its human;
-  OAS agents are not Linear users.
+  OATS agents are not Linear users.
 - Claim work with label `agent-<exact-instance-name>`. `--agent <alias>` creates
   this team-scoped label on first use and applies it.
 - New issue descriptions also receive `Agent: <alias>`. On existing issues,
@@ -92,16 +92,16 @@ from an issue title.
 
 ```bash
 # Your open queue (terminal states excluded by default)
-oas linear issue list --team <TEAM> --agent <alias>
+oats linear issue list --team <TEAM> --agent <alias>
 
 # Narrow to the deployment project when one is configured
-oas linear issue list --team <TEAM> --agent <alias> --project "<PROJECT>"
+oats linear issue list --team <TEAM> --agent <alias> --project "<PROJECT>"
 
 # Read full task context before acting
-oas linear issue get <TEAM>-123
+oats linear issue get <TEAM>-123
 
 # Discover this team's real workflow names; never guess them
-oas linear states --team <TEAM>
+oats linear states --team <TEAM>
 ```
 
 `issue get` includes team, status/type, project, parent, assignee, labels,
@@ -114,24 +114,24 @@ issue key in instance memory (`STATE.md`) if your knowledge layer provides it.
 2. If not already claimed, apply your identity label:
 
    ```bash
-   oas linear issue update <TEAM>-123 --agent <alias>
+   oats linear issue update <TEAM>-123 --agent <alias>
    ```
 
 3. Move to the deployment's `started` workflow state (often `In Progress`),
-   using the exact name returned by `oas linear states`:
+   using the exact name returned by `oats linear states`:
 
    ```bash
-   oas linear issue update <TEAM>-123 --state "In Progress"
+   oats linear issue update <TEAM>-123 --state "In Progress"
    ```
 
 4. Post only useful durable events, prefixed with your alias:
 
    ```bash
-   oas linear issue comment <TEAM>-123 \
+   oats linear issue comment <TEAM>-123 \
      --body "[<alias>] milestone: implemented parser; tests pass with node --test"
-   oas linear issue comment <TEAM>-123 \
+   oats linear issue comment <TEAM>-123 \
      --body "[<alias>] blocked: need API scope decision from @owner"
-   oas linear issue comment <TEAM>-123 \
+   oats linear issue comment <TEAM>-123 \
      --body "[<alias>] handoff → <next-alias>: branch agents/x, verify with npm test"
    ```
 
@@ -140,9 +140,9 @@ issue key in instance memory (`STATE.md`) if your knowledge layer provides it.
    completed:
 
    ```bash
-   oas linear issue comment <TEAM>-123 \
+   oats linear issue comment <TEAM>-123 \
      --body "[<alias>] review-ready: PR <url>; verified npm test"
-   oas linear issue update <TEAM>-123 --state "In Review"
+   oats linear issue update <TEAM>-123 --state "In Review"
    ```
 
 Workflow names vary. Agents may use backlog/unstarted/started states. The
@@ -165,7 +165,7 @@ Acceptance:
 - [ ] Verification command or evidence
 EOF
 
-oas linear issue create --team <TEAM> --project "<PROJECT>" \
+oats linear issue create --team <TEAM> --project "<PROJECT>" \
   --title "Bounded outcome" --description-file /tmp/linear-description.md \
   --agent <alias>
 ```
@@ -174,7 +174,7 @@ Omit `--project` when the briefing has none. Create a sub-issue only for a real
 independent slice:
 
 ```bash
-oas linear issue create --team <TEAM> --parent <TEAM>-123 \
+oats linear issue create --team <TEAM> --parent <TEAM>-123 \
   --title "Independent child outcome" \
   --description-file /tmp/linear-description.md --agent <alias>
 ```
@@ -183,7 +183,7 @@ oas linear issue create --team <TEAM> --parent <TEAM>-123 \
 independent, so supply both when a sub-issue must explicitly carry the project:
 
 ```bash
-oas linear issue create --team <TEAM> --project "<PROJECT>" \
+oats linear issue create --team <TEAM> --project "<PROJECT>" \
   --parent <TEAM>-123 --title "Independent child outcome" \
   --description-file /tmp/linear-description.md --agent <alias>
 ```
@@ -191,8 +191,8 @@ oas linear issue create --team <TEAM> --project "<PROJECT>" \
 Use an existing non-agent label only after discovery:
 
 ```bash
-oas linear labels --team <TEAM>
-oas linear issue create --team <TEAM> --title "Fix token refresh" \
+oats linear labels --team <TEAM>
+oats linear issue create --team <TEAM> --title "Fix token refresh" \
   --label bug --agent <alias>
 ```
 
