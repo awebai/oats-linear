@@ -1,9 +1,9 @@
 {
   "package": "oats.linear",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Official OATS tasks integration for Linear with JSON-first GraphQL issue commands.",
   "compatibility": {
-    "oats": ">=0.19.0"
+    "oats": ">=0.26.0"
   },
   "capabilities": [
     "capabilities/oats-linear"

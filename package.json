@@ -1,6 +1,6 @@
 {
   "name": "@awebai/oats-linear",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Official OATS tasks integration for Linear with JSON-first GraphQL issue commands.",
   "license": "MIT",
   "type": "module",

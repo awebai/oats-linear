@@ -17,44 +17,49 @@ CLI or SDK dependency.
 
 ## Requirements
 
-The commands use Node's built-in `fetch` and add no external CLI or SDK dependency. Create a Linear personal API key in **Settings → Security & access → API keys**, then expose it through your shell or secret manager, never `oats-config.yaml`:
+The commands use Node's built-in `fetch` and add no external CLI or SDK dependency. Create a Linear personal API key in **Settings → Security & access → API keys**, then expose it through your shell or secret manager, never a workspace, soul or `oats-local.yaml` file:
 
 ```bash
 export LINEAR_API_KEY='lin_api_...'
 ```
 
-Start/resume agents from an environment that receives this variable. The spawn hook warns when it is absent; API commands fail with actionable authentication guidance rather than attempting login. The amended package schema and OATS `>=0.19.0` compatibility floor are frozen. See [`SCHEMA-STATUS.md`](SCHEMA-STATUS.md) for the remaining released-kernel fixture gate.
+Start/resume agents from an environment that receives this variable. The spawn hook warns when it is absent; API commands fail with actionable authentication guidance rather than attempting login.
 
-## Acquire and activate
+Requires OATS `>=0.26.0` (the workspace model). The vendored schemas are described in [`SCHEMA-STATUS.md`](SCHEMA-STATUS.md).
 
-Acquisition does not activate the capability. After an official release exists:
+## Declare and select
 
-```bash
-oats install oats.linear --dir /path/to/scope
-oats trust oats.linear --dir /path/to/scope
-oats use oats.linear --global --dir /path/to/scope
-oats doctor /path/to/scope --soul <soul-name>
-```
-
-A pinned Git source may be used after publication:
-
-```bash
-oats install git:https://github.com/awebai/oats-linear.git@v1.0.0 --dir /path/to/scope
-```
-
-The commands and spawn hook are executable, so they need explicit per-capability trust tied to the exact package integrity. Configure deployment-owned targeting and settings in `oats-config.yaml` (team is the Linear issue-prefix key; project is an optional briefing default):
+Declaring the package in the workspace file's `packages:` is the decision to
+trust it — its commands and spawn hook run on every machine that spawns a soul
+using it — and `oats sync` locks it to an exact commit and integrity. Nothing is
+installed.
 
 ```yaml
+# oats-workspace.yaml
+packages:
+  oats.linear: v1.0.1
+defaults:
+  tasks: { oats.linear: { from: package } }   # every soul's tasks slot
+```
+
+A soul can instead select it for itself and carry its own settings (`team` is
+the Linear issue-prefix key; `project` is an optional briefing default):
+
+```yaml
+# souls/<name>/soul.yaml
 capabilities:
-  layers:
-    tasks:
-      capability: oats.linear
-      from: installed
-      global:
-        enabled: true
-        settings:
-          team: ENG
-          project: Agent Platform
+  oats.linear: { from: package }              # fills the tasks slot
+tasks: { team: ENG, project: Agent Platform }
+```
+
+`team` and `project` have three homes: the soul's `tasks:` payload when they are
+true of every instance of the soul; the deployment's `oats-local.yaml`
+`settings.oats.linear.{team,project}` when they are a fact about this machine;
+`oats spawn <soul> --provider oats.linear team=ENG` for one spawn. Then:
+
+```bash
+oats sync --dir <deployment>
+oats spawn <soul> --preview    # shows the merged settings.oats.linear
 ```
 
 Verify the active command surface:
@@ -246,4 +251,4 @@ document mutations agents may perform and which remain human-only.
 npm test
 ```
 
-This validates both manifests, checks resource containment, and exercises the GraphQL wrapper and advisory hook against local mock servers. The full acquire → lock → trust → activate → spawn probe remains pending released OATS 0.19.0 consumer fixtures.
+This validates both manifests, checks resource containment, and exercises the GraphQL wrapper and advisory hook against local mock servers.
