@@ -167,3 +167,14 @@ test("spawn hook briefs settings and warns without auth", async () => {
   assert.match(payload.brief, /team ENG, default project Agent Platform/);
   assert.match(payload.warning, /LINEAR_API_KEY/);
 });
+
+test("spawn hook without a team names the workspace-model homes", async () => {
+  const result = await run(HOOK, ["spawn"], { OATS_EVENT: "spawn", OATS_INSTANCE: "worker-1", OATS_SETTINGS: "{}", LINEAR_API_KEY: "lin_api_x" });
+  assert.equal(result.code, 0, result.stderr);
+  const payload = JSON.parse(result.stdout);
+  for (const text of [payload.brief, payload.warning]) {
+    assert.match(text, /tasks: \{ team \} in the soul's soul\.yaml/);
+    assert.match(text, /settings\.oats\.linear\.team in the deployment's oats-local\.yaml/);
+    assert.doesNotMatch(text, /oats-config|integrations\./);
+  }
+});
