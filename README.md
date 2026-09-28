@@ -78,7 +78,7 @@ move issues to terminal states without explicit human authorization.
 ## Command surface
 
 All successful output is JSON; errors are JSON on stderr and return non-zero.
-Run an incomplete command for usage, or load the `linear-tasks` skill for the
+Run an incomplete command for usage, or load `/linear-tasks` for the
 workflow and exact examples.
 
 ```text
