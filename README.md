@@ -176,12 +176,13 @@ oats linear issue create --team ENG --project "Agent Platform" \
 ```
 
 Create a sub-issue only when it is independently verifiable and the parent
-really decomposes into multiple pieces:
+really decomposes into multiple pieces. `<description-file>` below is a new
+`mktemp` file like the one above, written for the child:
 
 ```bash
 oats linear issue create --team ENG --parent ENG-123 \
   --title "Add refresh-token tests" \
-  --description-file "$f" \
+  --description-file <description-file> \
   --agent my-agent-instance
 ```
 
