@@ -153,10 +153,14 @@ oats linear issue get ENG-123
 
 ### Create issues in a project
 
-Prefer a Markdown file for acceptance criteria:
+Prefer a Markdown file for acceptance criteria. Make it new and private with
+`mktemp`, never a fixed or shared `/tmp` path: other agents and users on the
+host share `/tmp`, so a fixed name lets another agent overwrite your file and
+your issue carries its text.
 
 ```bash
-cat > /tmp/issue.md <<'EOF'
+f=$(mktemp)
+cat > "$f" <<'EOF'
 Why this work is needed.
 
 Acceptance:
@@ -167,7 +171,7 @@ EOF
 
 oats linear issue create --team ENG --project "Agent Platform" \
   --title "Implement token refresh" \
-  --description-file /tmp/issue.md \
+  --description-file "$f" \
   --agent my-agent-instance
 ```
 
@@ -177,7 +181,7 @@ really decomposes into multiple pieces:
 ```bash
 oats linear issue create --team ENG --parent ENG-123 \
   --title "Add refresh-token tests" \
-  --description-file /tmp/issue.md \
+  --description-file "$f" \
   --agent my-agent-instance
 ```
 

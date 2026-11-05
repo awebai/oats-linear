@@ -160,10 +160,15 @@ authorization and mention that authorization in a comment.
 
 Use ≤12 words in the title. Describe requirements and acceptance checks, not a
 speculative implementation. For multiline Markdown, prefer a file so shell
-quoting cannot corrupt it.
+quoting cannot corrupt it. Make that file new and private with `mktemp` (it
+prints a fresh, owner-only path), never a fixed or shared `/tmp` path: other
+agents and users on the host share `/tmp`, so a fixed name lets another agent
+overwrite your file and your issue carries its text. Run the next block as
+one command, so `$f` still holds the path when the issue command reads it.
 
 ```bash
-cat > /tmp/linear-description.md <<'EOF'
+f=$(mktemp)
+cat > "$f" <<'EOF'
 Why this is needed.
 
 Acceptance:
@@ -172,17 +177,18 @@ Acceptance:
 EOF
 
 oats linear issue create --team <TEAM> --project "<PROJECT>" \
-  --title "Bounded outcome" --description-file /tmp/linear-description.md \
+  --title "Bounded outcome" --description-file "$f" \
   --agent <alias>
 ```
 
-Omit `--project` when the briefing has none. Create a sub-issue only for a real
+Omit `--project` when the briefing has none. `<description-file>` below is a
+new `mktemp` file like the one above. Create a sub-issue only for a real
 independent slice:
 
 ```bash
 oats linear issue create --team <TEAM> --parent <TEAM>-123 \
   --title "Independent child outcome" \
-  --description-file /tmp/linear-description.md --agent <alias>
+  --description-file <description-file> --agent <alias>
 ```
 
 `--project` sets project membership; `--parent` sets issue hierarchy. They are
@@ -191,7 +197,7 @@ independent, so supply both when a sub-issue must explicitly carry the project:
 ```bash
 oats linear issue create --team <TEAM> --project "<PROJECT>" \
   --parent <TEAM>-123 --title "Independent child outcome" \
-  --description-file /tmp/linear-description.md --agent <alias>
+  --description-file <description-file> --agent <alias>
 ```
 
 Use an existing non-agent label only after discovery:
